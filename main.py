@@ -23,13 +23,15 @@ def load_images(raw_path: str) -> tuple:
         files = os.listdir(f"{raw_path}/{tag}")
         for filename in files:
             print(f"{raw_path}/{tag}/{filename}")
-            """load in image pixel array"""
+            # loads in png images
             image = cv2.imread(f"{raw_path}/{tag}/{filename}")
-            """reshape image"""
+            # reshapes image to 256 x 256
             image = cv2.resize(image, [256, 256])
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             train_set.append(img_to_array(image))
             label_set.append(tag)
+
+    # encodes image labels
     label_encoder = LabelEncoder()
     integer_encoded = label_encoder.fit_transform(label_set)
     onehot_encoder = OneHotEncoder(sparse=False)
@@ -39,8 +41,8 @@ def load_images(raw_path: str) -> tuple:
     return np.array(train_set), onehot_encoded
 
 
-def train_inspector_v3_model(train_path):
-    """trains inspector model"""
+def train_inception_v3(train_path) -> None:
+    """trains model using imagenet"""
     try:
         train_set, label_set = load_images(train_path)
         x_train, x_validation, y_train, y_validation = train_test_split(train_set, label_set, test_size=0.2,
@@ -60,7 +62,7 @@ def train_inspector_v3_model(train_path):
         val_generator = val_datagen.flow(
             x_validation, y_validation, shuffle=False, batch_size=40, seed=42)
 
-    # Model Intialize
+        # Model Intialize
         base_model = InceptionV3(
             weights='imagenet', include_top=False, input_shape=(256, 256, 3))
 
@@ -99,24 +101,24 @@ def train_inspector_v3_model(train_path):
         print(str(e))
 
 
-def predict_from_image(img_path: str, pickle_filename: str):
-    model_classes = pickle.load(open(pickle_filename, "rb"))
-    print(model_classes.summary())
+def predict_from_image(img_path: str, pickle_filename: str) -> tuple:
+    """reads pickle file and returns prediction"""
+    model = pickle.load(open(pickle_filename, "rb"))
     img = image.load_img(img_path, target_size=(256, 256))
     img_tensor = image.img_to_array(img)  # (height, width, channels)
     img_tensor = np.expand_dims(img_tensor,
                                 axis=0)  # (1, height, width, channels),
     # add a dimension because the model expects this shape: (batch_size, height, width, channels)
     img_tensor /= 255.
-    pred = model_classes.predict(img_tensor)
+    pred = model.predict(img_tensor)
     # sorted_category_list = sorted(top_categories)
-    # one hot encoding is already alphabetically sorted from folder 
+    # one hot encoding is already alphabetically sorted from folder
     predicted_class = ["a", "button", "footer", "form", "h1", "h2",
                        "h3", "h4", "header", "input", "textarea"][np.argmax(pred)]
     return predicted_class, max(pred[0])
 
 
 if __name__ == "__main__":
-    # train_inspector_v3_model("./raw/train")
-    val = predict_from_image("./raw/test/12715.png", "multi_class_model.pkl")
-    print(val)
+    train_inception_v3("./raw/train")
+    # val = predict_from_image("./raw/test/12715.png", "multi_class_model.pkl")
+    # print(val)
