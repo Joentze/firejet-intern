@@ -1,5 +1,6 @@
 # firejet-intern
-firejet assessment
+### Objective
+Create an image classifier to classify images of html components
 
 ## Model Details
 - ImageNet weights
